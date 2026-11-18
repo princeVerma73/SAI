@@ -1,26 +1,26 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import { X, Lock, Mail, User, ShieldAlert, CheckCircle } from 'lucide-react';
+import React, { useState } from "react";
+import axios from "axios";
+import { X, Lock, Mail, User, ShieldAlert, CheckCircle } from "lucide-react";
 
 export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
   const [isRegister, setIsRegister] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [role, setRole] = useState('PATIENT');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [role, setRole] = useState("PATIENT");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
-      const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
+      const endpoint = isRegister ? "/api/auth/register" : "/api/auth/login";
       const payload = isRegister
         ? { email, password, firstName, lastName, role }
         : { email, password };
@@ -28,14 +28,17 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
       const res = await axios.post(endpoint, payload);
 
       if (res.data.success) {
-        localStorage.setItem('accessToken', res.data.data.tokens.accessToken);
-        localStorage.setItem('refreshToken', res.data.data.tokens.refreshToken);
+        localStorage.setItem("accessToken", res.data.data.tokens.accessToken);
+        localStorage.setItem("refreshToken", res.data.data.tokens.refreshToken);
         onAuthSuccess(res.data.data.user);
         onClose();
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error?.message || 'Authentication failed. Please check credentials.');
+      setError(
+        err.response?.data?.error?.message ||
+          "Authentication failed. Please check credentials.",
+      );
     } finally {
       setLoading(false);
     }
@@ -57,10 +60,12 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
             type="button"
             onClick={() => {
               setIsRegister(false);
-              setError('');
+              setError("");
             }}
             className={`flex-1 py-2 text-sm font-semibold rounded-lg transition ${
-              !isRegister ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'
+              !isRegister
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-900"
             }`}
           >
             Sign In
@@ -69,10 +74,12 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
             type="button"
             onClick={() => {
               setIsRegister(true);
-              setError('');
+              setError("");
             }}
             className={`flex-1 py-2 text-sm font-semibold rounded-lg transition ${
-              isRegister ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'
+              isRegister
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-900"
             }`}
           >
             Create Account
@@ -80,12 +87,12 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
         </div>
 
         <h3 className="text-2xl font-bold text-slate-900 mb-2">
-          {isRegister ? 'Join ArogyaAI' : 'Welcome Back'}
+          {isRegister ? "Join ArogyaAI" : "Welcome Back"}
         </h3>
         <p className="text-xs text-slate-500 mb-6">
           {isRegister
-            ? 'Set up your secure digital medical baseline and health locker.'
-            : 'Access your diagnostic reports, medication adherence & AI records.'}
+            ? "Set up your secure digital medical baseline and health locker."
+            : "Access your diagnostic reports, medication adherence & AI records."}
         </p>
 
         {error && (
@@ -99,7 +106,9 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
           {isRegister && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">First Name</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  First Name
+                </label>
                 <div className="relative">
                   <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
@@ -113,7 +122,9 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Last Name</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Last Name
+                </label>
                 <input
                   type="text"
                   required
@@ -127,7 +138,9 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Email Address
+            </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
               <input
@@ -142,7 +155,9 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Password
+            </label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
               <input
@@ -159,14 +174,20 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
 
           {isRegister && (
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Account Role</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Account Role
+              </label>
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
                 className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
               >
-                <option value="PATIENT">Patient (Health Tracker & Triage)</option>
-                <option value="DOCTOR">Doctor (Consultations & Clinical Reviews)</option>
+                <option value="PATIENT">
+                  Patient (Health Tracker & Triage)
+                </option>
+                <option value="DOCTOR">
+                  Doctor (Consultations & Clinical Reviews)
+                </option>
               </select>
             </div>
           )}
@@ -176,7 +197,11 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
             disabled={loading}
             className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-semibold text-sm shadow-md shadow-emerald-600/20 transition disabled:opacity-50"
           >
-            {loading ? 'Please wait...' : isRegister ? 'Complete Registration' : 'Sign In'}
+            {loading
+              ? "Please wait..."
+              : isRegister
+                ? "Complete Registration"
+                : "Sign In"}
           </button>
         </form>
       </div>

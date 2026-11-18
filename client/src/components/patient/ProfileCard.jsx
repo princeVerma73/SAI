@@ -1,31 +1,44 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import { User, AlertTriangle, ShieldCheck, Heart, Plus, Edit2, Phone, Save } from 'lucide-react';
+import React, { useState } from "react";
+import axios from "axios";
+import {
+  User,
+  AlertTriangle,
+  ShieldCheck,
+  Heart,
+  Plus,
+  Edit2,
+  Phone,
+  Save,
+} from "lucide-react";
 
 export default function ProfileCard({ user, onProfileUpdated }) {
   const profile = user?.profile || {};
   const [isEditing, setIsEditing] = useState(false);
-  const [allergiesText, setAllergiesText] = useState((profile.allergies || []).join(', '));
-  const [chronicText, setChronicText] = useState((profile.chronicConditions || []).join(', '));
-  const [bloodGroup, setBloodGroup] = useState(profile.bloodGroup || 'B+');
+  const [allergiesText, setAllergiesText] = useState(
+    (profile.allergies || []).join(", "),
+  );
+  const [chronicText, setChronicText] = useState(
+    (profile.chronicConditions || []).join(", "),
+  );
+  const [bloodGroup, setBloodGroup] = useState(profile.bloodGroup || "B+");
   const [heightCm, setHeightCm] = useState(profile.heightCm || 172);
   const [weightKg, setWeightKg] = useState(profile.weightKg || 70);
   const [emergencyPhone, setEmergencyPhone] = useState(
-    profile.emergencyContacts?.[0]?.phoneNumber || '+919876543210'
+    profile.emergencyContacts?.[0]?.phoneNumber || "+919876543210",
   );
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem("accessToken");
       const payload = {
         allergies: allergiesText
-          .split(',')
+          .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
         chronicConditions: chronicText
-          .split(',')
+          .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
         bloodGroup,
@@ -33,14 +46,14 @@ export default function ProfileCard({ user, onProfileUpdated }) {
         weightKg: parseFloat(weightKg),
         emergencyContacts: [
           {
-            name: 'Primary Contact',
-            relationship: 'Family',
+            name: "Primary Contact",
+            relationship: "Family",
             phoneNumber: emergencyPhone,
           },
         ],
       };
 
-      const res = await axios.put('/api/patient/profile', payload, {
+      const res = await axios.put("/api/patient/profile", payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -49,7 +62,7 @@ export default function ProfileCard({ user, onProfileUpdated }) {
         if (onProfileUpdated) onProfileUpdated(res.data.data.profile);
       }
     } catch (err) {
-      console.error('Failed to update profile', err);
+      console.error("Failed to update profile", err);
     } finally {
       setSaving(false);
     }
@@ -61,7 +74,7 @@ export default function ProfileCard({ user, onProfileUpdated }) {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
         <div className="flex items-center space-x-4">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-700 flex items-center justify-center text-white text-xl font-bold shadow-md shadow-emerald-500/20">
-            {profile.firstName?.[0] || 'U'}
+            {profile.firstName?.[0] || "U"}
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-900">
@@ -85,7 +98,7 @@ export default function ProfileCard({ user, onProfileUpdated }) {
           {isEditing ? (
             <>
               <Save className="w-4 h-4 text-emerald-600" />
-              <span>{saving ? 'Saving...' : 'Save Baseline'}</span>
+              <span>{saving ? "Saving..." : "Save Baseline"}</span>
             </>
           ) : (
             <>
@@ -139,15 +152,21 @@ export default function ProfileCard({ user, onProfileUpdated }) {
             <div className="grid grid-cols-3 gap-2">
               <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 text-center">
                 <span className="text-xs text-slate-400 block">Blood</span>
-                <span className="text-base font-bold text-slate-800">{bloodGroup}</span>
+                <span className="text-base font-bold text-slate-800">
+                  {bloodGroup}
+                </span>
               </div>
               <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 text-center">
                 <span className="text-xs text-slate-400 block">Height</span>
-                <span className="text-base font-bold text-slate-800">{heightCm} cm</span>
+                <span className="text-base font-bold text-slate-800">
+                  {heightCm} cm
+                </span>
               </div>
               <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 text-center">
                 <span className="text-xs text-slate-400 block">Weight</span>
-                <span className="text-base font-bold text-slate-800">{weightKg} kg</span>
+                <span className="text-base font-bold text-slate-800">
+                  {weightKg} kg
+                </span>
               </div>
             </div>
           )}
@@ -179,7 +198,9 @@ export default function ProfileCard({ user, onProfileUpdated }) {
                   </span>
                 ))
               ) : (
-                <span className="text-xs text-slate-400 italic">No known drug allergies recorded.</span>
+                <span className="text-xs text-slate-400 italic">
+                  No known drug allergies recorded.
+                </span>
               )}
             </div>
           )}
@@ -220,7 +241,9 @@ export default function ProfileCard({ user, onProfileUpdated }) {
                     </span>
                   ))
                 ) : (
-                  <span className="text-xs text-slate-400 italic">None recorded.</span>
+                  <span className="text-xs text-slate-400 italic">
+                    None recorded.
+                  </span>
                 )}
               </div>
               <div className="flex items-center space-x-2 text-xs text-slate-600 pt-1">
