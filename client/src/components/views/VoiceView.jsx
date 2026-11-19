@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Mic, Volume2, Loader2 } from 'lucide-react';
+import { Mic, Volume2, VolumeX, Square, Loader2 } from 'lucide-react';
 
 export default function VoiceView() {
   const [isListening, setIsListening] = useState(false);
@@ -12,6 +12,7 @@ export default function VoiceView() {
   const [hasSpoken, setHasSpoken] = useState(false);
 
   const toggleListening = () => {
+    stopAudio();
     if (isListening) { setIsListening(false); return; }
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -75,6 +76,21 @@ export default function VoiceView() {
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const stopAudio = () => {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setIsPlayingAudio(false);
   };
 
   const playAudio = () => {
@@ -147,11 +163,42 @@ export default function VoiceView() {
             <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
               <div className="font-bold text-slate-900 text-sm mb-2">Answer</div>
               <p className="text-sm text-slate-700 leading-relaxed mb-4">{answer}</p>
-              <button type="button" onClick={playAudio} disabled={isPlayingAudio}
-                className="border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium px-4 py-1.5 rounded-lg transition-colors inline-flex items-center gap-2">
-                <Volume2 className={`w-4 h-4 ${isPlayingAudio ? 'text-[#0f766e] animate-bounce' : 'text-slate-500'}`} />
-                <span>{isPlayingAudio ? 'Playing...' : 'Play audio'}</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2.5">
+                {isPlayingAudio ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={stopAudio}
+                      className="border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors inline-flex items-center gap-2 shadow-sm cursor-pointer"
+                      title="Stop speech playback"
+                    >
+                      <Square className="w-3.5 h-3.5 fill-rose-600 text-rose-600" />
+                      <span>Stop</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={stopAudio}
+                      className="border border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-medium px-3.5 py-1.5 rounded-lg transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                      title="Mute voice"
+                    >
+                      <VolumeX className="w-4 h-4 text-slate-600" />
+                      <span>Mute</span>
+                    </button>
+                    <span className="text-xs text-[#0f766e] font-semibold flex items-center gap-1.5 animate-pulse ml-2">
+                      <Volume2 className="w-4 h-4 animate-bounce text-[#0f766e]" /> Playing voice...
+                    </span>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={playAudio}
+                    className="border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium px-4 py-1.5 rounded-lg transition-colors inline-flex items-center gap-2 cursor-pointer"
+                  >
+                    <Volume2 className="w-4 h-4 text-slate-500" />
+                    <span>Play audio</span>
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
