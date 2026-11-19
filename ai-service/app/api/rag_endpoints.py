@@ -10,7 +10,7 @@ import tempfile
 import os
 
 from app.services.self_rag import SelfRAGWorkflow
-from app.services.report_analyzer import analyze_report_llm
+from app.services.report_analyzer import analyze_report_llm, chat_about_report
 
 router = APIRouter()
 rag_engine = SelfRAGWorkflow()
@@ -21,6 +21,10 @@ class QueryRequest(BaseModel):
 class AnalyzeReportTextRequest(BaseModel):
     text: Optional[str] = None
     report_title: Optional[str] = "Clinical Diagnostic Report"
+
+class ReportChatRequest(BaseModel):
+    report_data: Dict[str, Any]
+    question: str
 
 @router.post("/rag/ask")
 async def ask_self_rag(req: QueryRequest):
@@ -63,3 +67,14 @@ async def analyze_report_upload(
                 os.remove(temp_path)
             except Exception:
                 pass
+
+@router.post("/reports/chat")
+async def chat_report_endpoint(req: ReportChatRequest):
+    """
+    Answers questions grounded in the current lab report context.
+    """
+    try:
+        reply = chat_about_report(req.report_data, req.question)
+        return {"success": True, "answer": reply}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

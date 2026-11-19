@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { analyzeReport, getReports, getBiomarkerTrend } from '../controllers/report.controller.js';
+import { analyzeReport, getReports, getBiomarkerTrend, chatReport } from '../controllers/report.controller.js';
 import { verifyAccessToken } from '../utils/jwt.js';
 import { db } from '../config/db.js';
 
@@ -25,6 +25,7 @@ const optionalAuth = async (req, res, next) => {
 };
 
 router.post('/analyze', optionalAuth, upload.any(), analyzeReport);
+router.post('/chat', optionalAuth, chatReport);
 router.get('/', optionalAuth, getReports);
 router.get('/trend', optionalAuth, getBiomarkerTrend);
 

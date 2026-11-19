@@ -1,9 +1,36 @@
 import { analyzeLabReport } from '../services/labAnalyzer.service.js';
 import { db } from '../config/db.js';
+import { env } from '../config/env.js';
 
 const extractBiomarkersWithLLM = async (file) => {
+  if (!file?.buffer) return null;
+
+  // 1. First try forwarding to Python AI Service (which handles both Gemini Vision & Groq)
+  try {
+    const aiUrl = env.AI_SERVICE_URL || 'http://localhost:8000';
+    const form = new FormData();
+    const blob = new Blob([file.buffer], { type: file.mimetype || 'application/octet-stream' });
+    form.append('file', blob, file.originalname || 'report.jpg');
+
+    const aiRes = await fetch(`${aiUrl}/api/reports/analyze-llm`, {
+      method: 'POST',
+      body: form,
+      signal: AbortSignal.timeout(22000),
+    });
+
+    if (aiRes.ok) {
+      const result = await aiRes.json();
+      if (result.success && result.data && result.data.tests?.length > 0) {
+        return result.data;
+      }
+    }
+  } catch (e) {
+    console.warn('[Report Controller] AI Service upload forward failed, trying direct Gemini:', e.message);
+  }
+
+  // 2. Direct Gemini Fallback with gemini-flash-lite-latest
   const geminiKey = process.env.GEMINI_API_KEY;
-  if (!geminiKey || !file?.buffer) return null;
+  if (!geminiKey) return null;
 
   try {
     const isImage = file.mimetype?.startsWith('image/') || /\.(png|jpg|jpeg|webp)$/i.test(file.originalname);
@@ -17,10 +44,8 @@ const extractBiomarkersWithLLM = async (file) => {
         },
       },
       {
-        text: `You are a clinical pathologist and laboratory diagnostics consultant.
-Analyze this diagnostic lab report image/PDF thoroughly.
-Extract all numerical test biomarkers found in the document.
-Respond ONLY with a valid JSON object matching this exact structure:
+        text: `You are a clinical pathologist. Extract ALL test biomarkers from this report image.
+Respond ONLY with JSON:
 {
   "tests": [
     {
@@ -32,31 +57,34 @@ Respond ONLY with a valid JSON object matching this exact structure:
       "status": "Low"
     }
   ],
-  "summary": "Detailed clinical narrative explaining normal vs abnormal markers and dietary guidance."
+  "summary": "Clinical summary of findings."
 }`,
       },
     ];
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiKey}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts }] }),
-      signal: AbortSignal.timeout(18000),
-    });
+    const models = ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-3.8-flash'];
+    for (const model of models) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts }] }),
+        signal: AbortSignal.timeout(18000),
+      });
 
-    if (response.ok) {
-      const data = await response.json();
-      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (rawText) {
-        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          return JSON.parse(jsonMatch[0]);
+      if (response.ok) {
+        const data = await response.json();
+        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawText) {
+          const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+          }
         }
       }
     }
   } catch (err) {
-    console.warn('[Report Controller] LLM extraction error, using clinical standard interpreter:', err.message);
+    console.warn('[Report Controller] Direct Gemini extraction error:', err.message);
   }
   return null;
 };
@@ -256,6 +284,38 @@ export const getBiomarkerTrend = async (req, res) => {
     return res.status(500).json({
       success: false,
       error: { message: 'Failed to retrieve biomarker historical trends.' },
+    });
+  }
+};
+
+export const chatReport = async (req, res) => {
+  try {
+    const { report_data, question } = req.body;
+    if (!question || !question.trim()) {
+      return res.status(400).json({ success: false, error: 'Question is required' });
+    }
+
+    const aiRes = await fetch(`${env.AI_SERVICE_URL || 'http://localhost:8000'}/api/reports/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ report_data: report_data || {}, question }),
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (aiRes.ok) {
+      const data = await aiRes.json();
+      return res.status(200).json(data);
+    }
+
+    return res.status(200).json({
+      success: true,
+      answer: 'Based on the findings in your lab report, please discuss these specific values with your healthcare provider for an individualized care plan.',
+    });
+  } catch (error) {
+    console.error('[Chat Report Error]', error);
+    return res.status(200).json({
+      success: true,
+      answer: 'Please consult your attending physician to interpret these clinical parameters in context with your medical history.',
     });
   }
 };
