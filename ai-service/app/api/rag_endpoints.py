@@ -103,7 +103,7 @@ async def chat_multimodal_endpoint(req: MultimodalChatRequest):
             "success": True,
             "answer": answer,
             "is_multimodal": bool(req.image_b64),
-            "source": "Gemini Clinical Vision" if req.image_b64 else "Groq Clinical AI"
+            "source": "Clinical Visual Triage" if req.image_b64 else "Clinical Knowledge Base"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

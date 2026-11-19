@@ -76,9 +76,8 @@ export default function ReportsView() {
       formData.append('reportTitle', file.name);
 
       let parsedData = null;
-      let model = 'AI Vision';
 
-      // 1. Try Python FastAPI AI Service directly (Gemini Vision + Groq)
+      // 1. Try Python FastAPI AI Service directly
       try {
         const aiRes = await axios.post('http://localhost:8000/api/reports/analyze-llm', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
@@ -87,7 +86,6 @@ export default function ReportsView() {
 
         if (aiRes.data?.success && aiRes.data?.data?.tests?.length > 0) {
           parsedData = aiRes.data.data;
-          model = aiRes.data.model || 'Gemini Vision';
         }
       } catch (aiErr) {
         console.warn('[Reports] Direct AI Service upload failed, falling back to Express:', aiErr.message);
@@ -119,7 +117,6 @@ export default function ReportsView() {
             summary: d.aiSummary || d.summary || '',
             dietary_tips: d.dietary_tips || '',
           };
-          model = 'Express Clinical Grounding';
         }
       }
 
@@ -130,7 +127,6 @@ export default function ReportsView() {
           patientName: parsedData.patient_name || '',
           labName: parsedData.lab_name || '',
           uploadedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          modelUsed: model,
           tests: parsedData.tests,
           summary: parsedData.summary || '',
           dietaryTips: parsedData.dietary_tips || '',
@@ -326,11 +322,6 @@ export default function ReportsView() {
                       {activeReport.fileName}
                     </span>
                     <span className="text-xs text-slate-500">· {activeReport.tests.length} biomarkers found</span>
-                    {activeReport.modelUsed && (
-                      <span className="text-[11px] bg-teal-50 text-[#0f766e] border border-teal-100 px-2 py-0.5 rounded-md font-medium">
-                        {activeReport.modelUsed}
-                      </span>
-                    )}
                   </div>
 
                   <button

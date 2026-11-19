@@ -30,12 +30,12 @@ export const askMedicalRAG = async (req, res) => {
             data: {
               query,
               retrievedGuideline: {
-                title: 'Clinical Visual Triage (Gemini Vision)',
-                organization: 'HealthAssist Visual Diagnostics',
+                title: 'Clinical Visual Triage',
+                organization: 'HealthAssist Clinical Diagnostics',
                 summary: mData.answer,
                 keyPoints: ['Visual triage analysis', 'First aid recommendations', 'Emergency red flags'],
               },
-              citations: ['Clinical Visual Inspection (Gemini Vision)'],
+              citations: ['Clinical Visual Inspection'],
               workflow_trace: ['__start__', 'inspect_image', 'triage_wound_rash', 'first_aid_plan', 'check_red_flags', '__end__'],
               is_self_rag: true,
               is_multimodal: true,

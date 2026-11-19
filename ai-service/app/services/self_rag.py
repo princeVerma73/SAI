@@ -191,7 +191,7 @@ class SelfRAGWorkflow:
         trace.append("is_use")
         trace.append("END")
         trace.append("__end__")
-        return self._result(q, direct_answer, [], ["General Medical Knowledge (Groq AI)"], trace, source="direct")
+        return self._result(q, direct_answer, [], ["Clinical Health Reference"], trace, source="direct")
 
     def _result(self, q, answer, top3, citations, trace, source="pdf"):
         verification = {
