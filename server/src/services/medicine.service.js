@@ -6,6 +6,19 @@
 // Comprehensive Brand-to-Generic and Active Chemical Database
 export const MEDICINE_KNOWLEDGE_BASE = {
   // --- ANALGESICS & ANTIPYRETICS ---
+  'crocin': {
+    brand: 'Crocin',
+    generic: 'Paracetamol',
+    synonyms: ['acetaminophen', 'paracetamol', 'dolo', 'calpol'],
+    therapeuticClass: 'Analgesic & Antipyretic',
+    activeIngredients: [{ name: 'Paracetamol', strengthMg: 500 }],
+    maxDailyDoseMg: 4000,
+    rxcui: '161',
+    sideEffects: ['Mild nausea', 'Allergic skin reaction (rare)'],
+    foodInteractions: ['Avoid heavy alcohol consumption'],
+    timingInstructions: 'Take every 4 to 6 hours as needed for fever or pain.',
+    verifiedSource: 'RxNorm & OpenFDA',
+  },
   'dolo 650': {
     brand: 'Dolo 650',
     generic: 'Paracetamol',

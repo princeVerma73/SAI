@@ -5,6 +5,20 @@
 
 export const CLINICAL_GUIDELINES_STORE = [
   {
+    topic: 'anaemia',
+    keywords: ['anaemia', 'anemia', 'tiredness', 'pale skin', 'dizziness', 'hemoglobin', 'iron deficiency', 'breath'],
+    title: 'WHO Anaemia Fact Sheet & MoHFW Anaemia Guidelines',
+    organization: 'WHO & Ministry of Health and Family Welfare (MoHFW)',
+    publishedYear: 2023,
+    url: 'https://www.who.int/news-room/fact-sheets/detail/anaemia',
+    summary: 'Common signs are tiredness, pale skin, dizziness and shortness of breath during activity. A blood test (hemoglobin) confirms it.',
+    keyPoints: [
+      'Common signs: chronic fatigue, pale skin/conjunctiva, lightheadedness, and exertional dyspnea.',
+      'Confirmed clinically by Complete Blood Count (CBC) checking Hemoglobin and Serum Ferritin levels.',
+      'Dietary management emphasizes iron-rich foods, folic acid, vitamin B12, and vitamin C for bioavailability.',
+    ],
+  },
+  {
     topic: 'malaria',
     keywords: ['malaria', 'plasmodium', 'artemisinin', 'falciparum', 'vivax', 'antimalarial'],
     title: 'WHO Guidelines for Malaria: Clinical Management & Chemotherapy',

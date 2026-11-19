@@ -24,7 +24,7 @@ const optionalAuth = async (req, res, next) => {
   next();
 };
 
-router.post('/analyze', optionalAuth, upload.single('file'), analyzeReport);
+router.post('/analyze', optionalAuth, upload.any(), analyzeReport);
 router.get('/', optionalAuth, getReports);
 router.get('/trend', optionalAuth, getBiomarkerTrend);
 

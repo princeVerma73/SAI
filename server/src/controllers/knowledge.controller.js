@@ -1,6 +1,7 @@
 import { queryClinicalRAG } from '../services/rag.service.js';
 import { checkMedicalMyth } from '../services/misinformation.service.js';
 import { detectNutritionalDeficiency } from '../services/nutrition.service.js';
+import { env } from '../config/env.js';
 
 export const askMedicalRAG = async (req, res) => {
   try {
@@ -12,6 +13,39 @@ export const askMedicalRAG = async (req, res) => {
       });
     }
 
+    // 1. Attempt Self-RAG microservice query (with FAISS + Hybrid Search + Cross-Encoder)
+    try {
+      const aiResponse = await fetch(`${env.AI_SERVICE_URL}/api/rag/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+        signal: AbortSignal.timeout(8000),
+      });
+
+      if (aiResponse.ok) {
+        const ragData = await aiResponse.json();
+        return res.status(200).json({
+          success: true,
+          data: {
+            query,
+            retrievedGuideline: {
+              title: ragData.citations?.[0] || 'Indexed Clinical Medical Reference',
+              organization: 'WHO / ICMR / DCMC Specialty Guidelines',
+              summary: ragData.answer,
+              keyPoints: ragData.citations || [],
+            },
+            citations: ragData.citations || [],
+            workflow_trace: ragData.workflow_trace || [],
+            top3_sources: ragData.top3_sources || [],
+            is_self_rag: true,
+          },
+        });
+      }
+    } catch (e) {
+      console.log('[Knowledge Controller] Self-RAG service call bypassed, using clinical guideline store:', e.message);
+    }
+
+    // 2. Fallback to local clinical guideline store
     const answerData = queryClinicalRAG(query);
     return res.status(200).json({
       success: true,

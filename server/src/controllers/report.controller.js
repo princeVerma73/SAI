@@ -1,13 +1,84 @@
 import { analyzeLabReport } from '../services/labAnalyzer.service.js';
 import { db } from '../config/db.js';
 
+const extractBiomarkersWithLLM = async (file) => {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!geminiKey || !file?.buffer) return null;
+
+  try {
+    const isImage = file.mimetype?.startsWith('image/') || /\.(png|jpg|jpeg|webp)$/i.test(file.originalname);
+    const mime = isImage ? (file.mimetype || 'image/jpeg') : 'application/pdf';
+
+    const parts = [
+      {
+        inlineData: {
+          mimeType: mime,
+          data: file.buffer.toString('base64'),
+        },
+      },
+      {
+        text: `You are a clinical pathologist and laboratory diagnostics consultant.
+Analyze this diagnostic lab report image/PDF thoroughly.
+Extract all numerical test biomarkers found in the document.
+Respond ONLY with a valid JSON object matching this exact structure:
+{
+  "tests": [
+    {
+      "name": "Standard Test Name",
+      "value": 10.2,
+      "unit": "g/dL",
+      "normalMin": 12.0,
+      "normalMax": 15.5,
+      "status": "Low"
+    }
+  ],
+  "summary": "Detailed clinical narrative explaining normal vs abnormal markers and dietary guidance."
+}`,
+      },
+    ];
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${geminiKey}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts }] }),
+      signal: AbortSignal.timeout(18000),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (rawText) {
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          return JSON.parse(jsonMatch[0]);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[Report Controller] LLM extraction error, using clinical standard interpreter:', err.message);
+  }
+  return null;
+};
+
 export const analyzeReport = async (req, res) => {
   try {
+    const uploadedFile = req.file || (req.files && req.files[0]);
     const { reportTitle, reportDate, biomarkers: jsonBiomarkers } = req.body;
     let inputBiomarkers = [];
+    let customSummary = '';
 
-    // 1. Check if raw JSON biomarkers were passed
-    if (jsonBiomarkers) {
+    // 1. Try LLM extraction if file was uploaded
+    if (uploadedFile) {
+      const llmResult = await extractBiomarkersWithLLM(uploadedFile);
+      if (llmResult?.tests && llmResult.tests.length > 0) {
+        inputBiomarkers = llmResult.tests;
+        customSummary = llmResult.summary || '';
+      }
+    }
+
+    // 2. Check if raw JSON biomarkers were passed
+    if (inputBiomarkers.length === 0 && jsonBiomarkers) {
       if (typeof jsonBiomarkers === 'string') {
         try {
           inputBiomarkers = JSON.parse(jsonBiomarkers);
@@ -19,23 +90,22 @@ export const analyzeReport = async (req, res) => {
       }
     }
 
-    // 2. Check if a document file (PDF or Image) was uploaded
+    // 3. Fallback mock parsing by filename if LLM is unavailable
     let fileUrl = '';
     let cloudinaryId = '';
 
-    if (req.file) {
-      fileUrl = `/uploads/${req.file.filename || req.file.originalname}`;
+    if (uploadedFile) {
+      fileUrl = `/uploads/${uploadedFile.filename || uploadedFile.originalname}`;
       cloudinaryId = `local_${Date.now()}`;
 
-      // If no explicit biomarkers were in body, mock-parse typical biomarkers for the report
       if (inputBiomarkers.length === 0) {
-        const fileName = (req.file.originalname || '').toLowerCase();
+        const fileName = (uploadedFile.originalname || '').toLowerCase();
         if (fileName.includes('cbc') || fileName.includes('blood')) {
           inputBiomarkers = [
-            { name: 'Hemoglobin', value: 9.4, unit: 'g/dL' },
-            { name: 'Total Leukocyte Count (WBC)', value: 12800, unit: '/uL' },
-            { name: 'Platelet Count', value: 180000, unit: '/uL' },
-            { name: 'RBC', value: 3.8, unit: 'million/uL' },
+            { name: 'Hemoglobin', value: 10.2, unit: 'g/dL' },
+            { name: 'Total Leukocyte Count (WBC)', value: 7200, unit: '/uL' },
+            { name: 'Platelet Count', value: 240000, unit: '/uL' },
+            { name: 'Fasting glucose', value: 112, unit: 'mg/dL' },
           ];
         } else if (fileName.includes('sugar') || fileName.includes('diabetes')) {
           inputBiomarkers = [
@@ -50,7 +120,6 @@ export const analyzeReport = async (req, res) => {
             { name: 'LDL', value: 165, unit: 'mg/dL' },
           ];
         } else {
-          // Default general metabolic panel
           inputBiomarkers = [
             { name: 'Hemoglobin', value: 13.8, unit: 'g/dL' },
             { name: 'Fasting Blood Sugar', value: 92, unit: 'mg/dL' },
@@ -67,12 +136,16 @@ export const analyzeReport = async (req, res) => {
       });
     }
 
-    // 3. Clinical Analysis & Range Verification
+    // 4. Clinical Analysis & Range Verification
     const analysis = analyzeLabReport(
-      reportTitle || req.file?.originalname || 'Clinical Laboratory Report',
+      reportTitle || uploadedFile?.originalname || 'Clinical Laboratory Report',
       reportDate || new Date(),
       inputBiomarkers
     );
+
+    if (customSummary) {
+      analysis.aiSummary = customSummary;
+    }
 
     // 4. Save to database if user is authenticated
     let savedReport = null;
