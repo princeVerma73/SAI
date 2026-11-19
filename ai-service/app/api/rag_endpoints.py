@@ -11,6 +11,7 @@ import os
 
 from app.services.self_rag import SelfRAGWorkflow
 from app.services.report_analyzer import analyze_report_llm, chat_about_report
+from app.services.llm_client import call_multimodal_clinical
 
 router = APIRouter()
 rag_engine = SelfRAGWorkflow()
@@ -25,6 +26,12 @@ class AnalyzeReportTextRequest(BaseModel):
 class ReportChatRequest(BaseModel):
     report_data: Dict[str, Any]
     question: str
+
+class MultimodalChatRequest(BaseModel):
+    query: str
+    image_b64: Optional[str] = None
+    mime_type: Optional[str] = "image/jpeg"
+    history: Optional[List[Dict[str, Any]]] = None
 
 @router.post("/rag/ask")
 async def ask_self_rag(req: QueryRequest):
@@ -76,5 +83,27 @@ async def chat_report_endpoint(req: ReportChatRequest):
     try:
         reply = chat_about_report(req.report_data, req.question)
         return {"success": True, "answer": reply}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/rag/chat-multimodal")
+async def chat_multimodal_endpoint(req: MultimodalChatRequest):
+    """
+    Handles multimodal clinical visual queries (rashes, cuts, wounds, burns, insect bites)
+    with conversational follow-up memory.
+    """
+    try:
+        answer = call_multimodal_clinical(
+            prompt=req.query,
+            image_b64=req.image_b64,
+            mime_type=req.mime_type or "image/jpeg",
+            history=req.history or []
+        )
+        return {
+            "success": True,
+            "answer": answer,
+            "is_multimodal": bool(req.image_b64),
+            "source": "Gemini Clinical Vision" if req.image_b64 else "Groq Clinical AI"
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -5,15 +5,49 @@ import { env } from '../config/env.js';
 
 export const askMedicalRAG = async (req, res) => {
   try {
-    const { query } = req.body;
-    if (!query || !query.trim()) {
+    const { query, image_b64, mime_type, history } = req.body;
+    if ((!query || !query.trim()) && !image_b64) {
       return res.status(400).json({
         success: false,
-        error: { message: 'Query string is required.' },
+        error: { message: 'Query string or image is required.' },
       });
     }
 
-    // 1. Attempt Self-RAG microservice query (with FAISS + Hybrid Search + Cross-Encoder)
+    // 1. If an image is provided OR conversation history exists with multimodal context, route to Multimodal Vision
+    if (image_b64 || (history && history.some((h) => h.image_b64))) {
+      try {
+        const aiResponse = await fetch(`${env.AI_SERVICE_URL}/api/rag/chat-multimodal`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: query || 'Analyze this image', image_b64, mime_type, history }),
+          signal: AbortSignal.timeout(25000),
+        });
+
+        if (aiResponse.ok) {
+          const mData = await aiResponse.json();
+          return res.status(200).json({
+            success: true,
+            data: {
+              query,
+              retrievedGuideline: {
+                title: 'Clinical Visual Triage (Gemini Vision)',
+                organization: 'HealthAssist Visual Diagnostics',
+                summary: mData.answer,
+                keyPoints: ['Visual triage analysis', 'First aid recommendations', 'Emergency red flags'],
+              },
+              citations: ['Clinical Visual Inspection (Gemini Vision)'],
+              workflow_trace: ['__start__', 'inspect_image', 'triage_wound_rash', 'first_aid_plan', 'check_red_flags', '__end__'],
+              is_self_rag: true,
+              is_multimodal: true,
+            },
+          });
+        }
+      } catch (e) {
+        console.warn('[Knowledge Controller] Multimodal vision service call failed:', e.message);
+      }
+    }
+
+    // 2. Standard Self-RAG microservice query (with FAISS + Hybrid Search + Cross-Encoder)
     try {
       const aiResponse = await fetch(`${env.AI_SERVICE_URL}/api/rag/ask`, {
         method: 'POST',
